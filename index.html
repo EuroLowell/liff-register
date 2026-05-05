@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #f0f0f0;
+    }
+    #app {
+      text-align: center;
+      padding: 24px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      max-width: 320px;
+      width: 90%;
+    }
+    img { width: 72px; border-radius: 50%; margin-bottom: 8px; }
+    .success { color: #06c755; font-weight: bold; }
+    .error { color: #e00; }
+  </style>
+</head>
+<body>
+  <div id="app"><p>⏳ กำลังโหลด...</p></div>
+
+  <script>
+    const LIFF_ID = "2009976093-fto5ryrn";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwzKBNYUovepHYqfT4xccKwnQHTB07Hgwl6aohLLYrzyu5GBEyV1mINsQRnbsI7I5bV/exec";
+
+    async function main() {
+      const app = document.getElementById("app");
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login({ redirectUri: window.location.href });
+          return;
+        }
+
+        const profile = await liff.getProfile();
+        app.innerHTML = `
+          <img src="${profile.pictureUrl}" alt="avatar">
+          <h3>${profile.displayName}</h3>
+          <p>⏳ กำลังบันทึกข้อมูล...</p>
+        `;
+
+        const res = await fetch(WEB_APP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({
+            userId: profile.userId,
+            displayName: profile.displayName,
+            message: "LIFF Register"
+          })
+        });
+
+        const result = await res.json();
+
+        if (result.status === "success") {
+          app.innerHTML = `
+            <img src="${profile.pictureUrl}" alt="avatar">
+            <h3>${profile.displayName}</h3>
+            <p class="success">✅ ลงทะเบียนสำเร็จ!</p>
+          `;
+        } else {
+          throw new Error(result.message);
+        }
+
+      } catch (err) {
+        document.getElementById("app").innerHTML =
+          `<p class="error">❌ ${err.message}</p>`;
+      }
+    }
+
+    main();
+  </script>
+</body>
+</html>
