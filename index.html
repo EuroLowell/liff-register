@@ -5,39 +5,65 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: sans-serif;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      margin: 0;
       background: #f0f0f0;
     }
     #app {
       text-align: center;
-      padding: 24px;
+      padding: 32px 24px;
       background: white;
       border-radius: 16px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 16px rgba(0,0,0,0.1);
       max-width: 320px;
       width: 90%;
     }
-    img { width: 72px; border-radius: 50%; margin-bottom: 8px; }
-    .success { color: #06c755; font-weight: bold; }
-    .error { color: #e00; }
+    img.avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin-bottom: 12px;
+      object-fit: cover;
+    }
+    h3 { font-size: 18px; margin-bottom: 16px; color: #333; }
+    .step    { color: #aaa; font-size: 14px; }
+    .success { color: #06c755; font-size: 15px; font-weight: bold; }
+    .pending { color: #f5a623; font-size: 15px; font-weight: bold; }
+    .error   { color: #e00;    font-size: 15px; font-weight: bold; }
+    .note    { color: #999;    font-size: 13px; margin-top: 8px; line-height: 1.5; }
   </style>
 </head>
 <body>
-  <div id="app"><p>⏳ กำลังโหลด...</p></div>
+  <div id="app">
+    <p class="step">⏳ กำลังโหลด...</p>
+  </div>
 
   <script>
-    const LIFF_ID = "2009976093-fto5ryrn";
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxNoM7TdPaxpqWTIxv7Q3RbpLoOSUHFy_msytdqROQr_fNHguVfslNSNBVKFQnIpDAC/exec";
+    const LIFF_ID     = "2009976093-fto5ryrn";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby4gJbdTZZxFfuP_FQVDm8j9SJ9Vs9jOR0x160nOG8DFwEhLAYs0lGEmcVCOvIATdqG/exec";
+
+    async function post(body) {
+      const res = await fetch(WEB_APP_URL, {
+        method:  "POST",
+        headers: { "Content-Type": "text/plain" },
+        body:    JSON.stringify(body)
+      });
+      return res.json();
+    }
+
+    function setHTML(html) {
+      document.getElementById("app").innerHTML = html;
+    }
 
     async function main() {
-      const app = document.getElementById("app");
       try {
+        // 1. Init LIFF
+        setHTML(`<p class="step">⏳ กำลังเชื่อมต่อ...</p>`);
         await liff.init({ liffId: LIFF_ID });
 
         if (!liff.isLoggedIn()) {
@@ -45,38 +71,55 @@
           return;
         }
 
+        // 2. ดึง Profile
         const profile = await liff.getProfile();
-        app.innerHTML = `
-          <img src="${profile.pictureUrl}" alt="avatar">
-          <h3>${profile.displayName}</h3>
-          <p>⏳ กำลังบันทึกข้อมูล...</p>
-        `;
+        const avatar  = `<img class="avatar" src="${profile.pictureUrl}" alt="avatar">`;
+        const name    = `<h3>${profile.displayName}</h3>`;
 
-        const res = await fetch(WEB_APP_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({
-            userId: profile.userId,
-            displayName: profile.displayName,
-            message: "LIFF Register"
-          })
+        setHTML(avatar + name + `<p class="step">⏳ กำลังตรวจสอบข้อมูล...</p>`);
+
+        // 3. บันทึก (ถ้าใหม่ → pending อัตโนมัติ)
+        await post({
+          action:      "register",
+          userId:      profile.userId,
+          displayName: profile.displayName,
+          message:     "LIFF Register"
         });
 
-        const result = await res.json();
+        // 4. เช็คสิทธิ์ + ผูก Rich Menu
+        document.querySelector(".step").innerText = "⏳ กำลังตรวจสอบสิทธิ์...";
 
-        if (result.status === "success") {
-          app.innerHTML = `
-            <img src="${profile.pictureUrl}" alt="avatar">
-            <h3>${profile.displayName}</h3>
-            <p class="success">✅ ลงทะเบียนสำเร็จ!</p>
-          `;
+        const result = await post({
+          action: "checkAndLink",
+          userId: profile.userId
+        });
+
+        if (result.status === "error") throw new Error(result.message);
+
+        // 5. แสดงผล
+        if (result.permission) {
+          setHTML(avatar + name + `
+            <p class="success">✅ ยืนยันสิทธิ์สำเร็จ!</p>
+            <p class="note">เมนูของคุณถูกเปิดใช้งานแล้ว</p>
+          `);
+          if (liff.isInClient()) setTimeout(() => liff.closeWindow(), 2000);
+
+        } else if (result.reason === "not_found") {
+          setHTML(avatar + name + `
+            <p class="error">❌ ไม่พบข้อมูลในระบบ</p>
+            <p class="note">กรุณาติดต่อเจ้าหน้าที่</p>
+          `);
+
         } else {
-          throw new Error(result.message);
+          setHTML(avatar + name + `
+            <p class="pending">⏳ รอการอนุมัติ</p>
+            <p class="note">ระบบได้รับข้อมูลของคุณแล้ว<br>กรุณารอเจ้าหน้าที่ตรวจสอบ</p>
+          `);
+          if (liff.isInClient()) setTimeout(() => liff.closeWindow(), 3000);
         }
 
       } catch (err) {
-        document.getElementById("app").innerHTML =
-          `<p class="error">❌ ${err.message}</p>`;
+        setHTML(`<p class="error">❌ ${err.message}</p>`);
       }
     }
 
