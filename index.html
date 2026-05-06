@@ -45,7 +45,7 @@
 
   <script>
     const LIFF_ID     = "2009976093-fto5ryrn";
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxGjQzLW7lOBUNbbsjZG0ESsxsiphPTF7i6uLPY-hEDe401prlN7F7mfgK67ggjfasC/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz9M_dsidu8TOnj5f6n4o4KtjRM7m5bxuS04NPVEkkMswjLhjYCXUrsRTEW3BlgwzIa/exec";
 
     async function post(body) {
       const res = await fetch(WEB_APP_URL, {
@@ -98,25 +98,23 @@
 
         // 5. แสดงผล
         if (result.permission) {
-          setHTML(avatar + name + `
-            <p class="success">✅ ยืนยันสิทธิ์สำเร็จ!</p>
-            <p class="note">เมนูของคุณถูกเปิดใช้งานแล้ว</p>
-          `);
-          if (liff.isInClient()) setTimeout(() => liff.closeWindow(), 2000);
+  setHTML(avatar + name + `
+    <p class="success">✅ ยืนยันสิทธิ์สำเร็จ!</p>
+    <p class="note">เมนูของคุณถูกเปิดใช้งานแล้ว<br>กรุณากดปิดหน้าต่างนี้</p>
+  `);
 
-        } else if (result.reason === "not_found") {
-          setHTML(avatar + name + `
-            <p class="error">❌ ไม่พบข้อมูลในระบบ</p>
-            <p class="note">กรุณาติดต่อเจ้าหน้าที่</p>
-          `);
+} else if (result.reason === "not_found") {
+  setHTML(avatar + name + `
+    <p class="error">❌ ไม่พบข้อมูลในระบบ</p>
+    <p class="note">กรุณาติดต่อเจ้าหน้าที่</p>
+  `);
 
-        } else {
-          setHTML(avatar + name + `
-            <p class="pending">⏳ รอการอนุมัติ</p>
-            <p class="note">ระบบได้รับข้อมูลของคุณแล้ว<br>กรุณารอเจ้าหน้าที่ตรวจสอบ</p>
-          `);
-          if (liff.isInClient()) setTimeout(() => liff.closeWindow(), 3000);
-        }
+} else {
+  setHTML(avatar + name + `
+    <p class="pending">⏳ รอการอนุมัติ</p>
+    <p class="note">ระบบได้รับข้อมูลของคุณแล้ว<br>กรุณารอเจ้าหน้าที่ตรวจสอบ</p>
+  `);
+}
 
       } catch (err) {
         setHTML(`<p class="error">❌ ${err.message}</p>`);
