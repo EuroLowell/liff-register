@@ -45,7 +45,7 @@
 
   <script>
     const LIFF_ID     = "2009976093-fto5ryrn";
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz-lGmFlTBq0jooMJKvfhwE-G1wlBVyuP9_6JL2O8L7dj7Jvd6mDtHAxSvQEvQ61SXb/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzeQ94Jfo2MhnLBvy11-lwC26H3DTIp4rto21R8FsBZalyjtVEGKuVt4_KS7ulTH_vR/exec";
 
     async function post(body) {
       const res = await fetch(WEB_APP_URL, {
@@ -100,20 +100,24 @@
         if (result.permission) {
   setHTML(avatar + name + `
     <p class="success">✅ ยืนยันสิทธิ์สำเร็จ!</p>
-    <p class="note">เมนูของคุณถูกเปิดใช้งานแล้ว<br>กรุณากดปิดหน้าต่างนี้</p>
+    <p class="note">กำลังกลับสู่หน้าหลัก...</p>
   `);
+  // ปิด LIFF หลัง 1.5 วิ → LINE restore Rich Menu ให้อัตโนมัติ
+  if (liff.isInClient()) setTimeout(() => liff.closeWindow(), 1500);
 
 } else if (result.reason === "not_found") {
   setHTML(avatar + name + `
     <p class="error">❌ ไม่พบข้อมูลในระบบ</p>
     <p class="note">กรุณาติดต่อเจ้าหน้าที่</p>
   `);
+  if (liff.isInClient()) setTimeout(() => liff.closeWindow(), 2000);
 
 } else {
   setHTML(avatar + name + `
     <p class="pending">⏳ รอการอนุมัติ</p>
     <p class="note">ระบบได้รับข้อมูลของคุณแล้ว<br>กรุณารอเจ้าหน้าที่ตรวจสอบ</p>
   `);
+  if (liff.isInClient()) setTimeout(() => liff.closeWindow(), 2000);
 }
 
       } catch (err) {
