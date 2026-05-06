@@ -23,46 +23,35 @@
       max-width: 320px;
       width: 90%;
     }
-    img.avatar {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      margin-bottom: 12px;
-      object-fit: cover;
-    }
-    h3 { font-size: 18px; margin-bottom: 16px; color: #333; }
-    .step    { color: #aaa; font-size: 14px; }
-    .success { color: #06c755; font-size: 15px; font-weight: bold; }
-    .pending { color: #f5a623; font-size: 15px; font-weight: bold; }
-    .error   { color: #e00;    font-size: 15px; font-weight: bold; }
-    .note    { color: #999;    font-size: 13px; margin-top: 8px; line-height: 1.5; }
+    img.avatar { width: 80px; height: 80px; border-radius: 50%; margin-bottom: 12px; object-fit: cover; }
+    h3      { font-size: 18px; margin-bottom: 16px; color: #333; }
+    .step   { color: #aaa;     font-size: 14px; }
+    .success{ color: #06c755;  font-size: 15px; font-weight: bold; }
+    .pending{ color: #f5a623;  font-size: 15px; font-weight: bold; }
+    .error  { color: #e00;     font-size: 15px; font-weight: bold; }
+    .note   { color: #999;     font-size: 13px; margin-top: 8px; line-height: 1.6; }
   </style>
 </head>
 <body>
-  <div id="app">
-    <p class="step">⏳ กำลังโหลด...</p>
-  </div>
+  <div id="app"><p class="step">⏳ กำลังโหลด...</p></div>
 
   <script>
     const LIFF_ID     = "2009976093-fto5ryrn";
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzeQ94Jfo2MhnLBvy11-lwC26H3DTIp4rto21R8FsBZalyjtVEGKuVt4_KS7ulTH_vR/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxy1LZdeawBqI2aO1bTvLqKvWoRa6IkDA0mWnlM0nNgx6LaqeZdQdsD_-xp-MxhQ57u/exec";
 
-    async function post(body) {
+    const post = async body => {
       const res = await fetch(WEB_APP_URL, {
         method:  "POST",
         headers: { "Content-Type": "text/plain" },
         body:    JSON.stringify(body)
       });
       return res.json();
-    }
+    };
 
-    function setHTML(html) {
-      document.getElementById("app").innerHTML = html;
-    }
+    const setHTML = html => document.getElementById("app").innerHTML = html;
 
     async function main() {
       try {
-        // 1. Init LIFF
         setHTML(`<p class="step">⏳ กำลังเชื่อมต่อ...</p>`);
         await liff.init({ liffId: LIFF_ID });
 
@@ -71,14 +60,13 @@
           return;
         }
 
-        // 2. ดึง Profile
         const profile = await liff.getProfile();
         const avatar  = `<img class="avatar" src="${profile.pictureUrl}" alt="avatar">`;
         const name    = `<h3>${profile.displayName}</h3>`;
 
         setHTML(avatar + name + `<p class="step">⏳ กำลังตรวจสอบข้อมูล...</p>`);
 
-        // 3. บันทึก (ถ้าใหม่ → pending อัตโนมัติ)
+        // บันทึก user (ถ้าใหม่ → pending อัตโนมัติ)
         await post({
           action:      "register",
           userId:      profile.userId,
@@ -86,39 +74,33 @@
           message:     "LIFF Register"
         });
 
-        // 4. เช็คสิทธิ์ + ผูก Rich Menu
-        document.querySelector(".step").innerText = "⏳ กำลังตรวจสอบสิทธิ์...";
-
-        const result = await post({
-          action: "checkAndLink",
-          userId: profile.userId
-        });
+        // เช็คสิทธิ์ + ผูก Rich Menu
+        setHTML(avatar + name + `<p class="step">⏳ กำลังตรวจสอบสิทธิ์...</p>`);
+        const result = await post({ action: "checkAndLink", userId: profile.userId });
 
         if (result.status === "error") throw new Error(result.message);
 
-        // 5. แสดงผล
         if (result.permission) {
-  setHTML(avatar + name + `
-    <p class="success">✅ ยืนยันสิทธิ์สำเร็จ!</p>
-    <p class="note">กำลังกลับสู่หน้าหลัก...</p>
-  `);
-  // ปิด LIFF หลัง 1.5 วิ → LINE restore Rich Menu ให้อัตโนมัติ
-  if (liff.isInClient()) setTimeout(() => liff.closeWindow(), 1500);
+          setHTML(avatar + name + `
+            <p class="success">✅ ยืนยันสิทธิ์สำเร็จ!</p>
+            <p class="note">กำลังกลับสู่หน้าหลัก...</p>
+          `);
+          if (liff.isInClient()) setTimeout(() => liff.closeWindow(), 1500);
 
-} else if (result.reason === "not_found") {
-  setHTML(avatar + name + `
-    <p class="error">❌ ไม่พบข้อมูลในระบบ</p>
-    <p class="note">กรุณาติดต่อเจ้าหน้าที่</p>
-  `);
-  if (liff.isInClient()) setTimeout(() => liff.closeWindow(), 2000);
+        } else if (result.reason === "not_found") {
+          setHTML(avatar + name + `
+            <p class="error">❌ ไม่พบข้อมูลในระบบ</p>
+            <p class="note">กรุณาติดต่อเจ้าหน้าที่</p>
+          `);
+          if (liff.isInClient()) setTimeout(() => liff.closeWindow(), 2500);
 
-} else {
-  setHTML(avatar + name + `
-    <p class="pending">⏳ รอการอนุมัติ</p>
-    <p class="note">ระบบได้รับข้อมูลของคุณแล้ว<br>กรุณารอเจ้าหน้าที่ตรวจสอบ</p>
-  `);
-  if (liff.isInClient()) setTimeout(() => liff.closeWindow(), 2000);
-}
+        } else {
+          setHTML(avatar + name + `
+            <p class="pending">⏳ รอการอนุมัติ</p>
+            <p class="note">ระบบได้รับข้อมูลของคุณแล้ว<br>กรุณารอเจ้าหน้าที่ตรวจสอบ</p>
+          `);
+          if (liff.isInClient()) setTimeout(() => liff.closeWindow(), 2500);
+        }
 
       } catch (err) {
         setHTML(`<p class="error">❌ ${err.message}</p>`);
